@@ -10,6 +10,7 @@ Built with DeepAgents - the agent autonomously decides which tools to use.
 
 from dotenv import load_dotenv
 import sqlite3
+import uuid
 import requests
 from langchain_community.utilities.sql_database import SQLDatabase
 from langchain_core.tools import tool
@@ -137,6 +138,8 @@ if __name__ == "__main__":
 
     # Interactive loop
     conversation_history = []
+    thread_id = str(uuid.uuid4())
+    print(f"Conversation ID: {thread_id}\n")
 
     while True:
         user_input = input("You: ")
@@ -146,8 +149,11 @@ if __name__ == "__main__":
 
         conversation_history.append({"role": "user", "content": user_input})
 
-        # Invoke the agent
-        result = agent.invoke({"messages": conversation_history})
+        # Invoke the agent with thread_id for LangSmith trace linking
+        result = agent.invoke(
+            {"messages": conversation_history},
+            config={"metadata": {"thread_id": thread_id}}
+        )
 
         # Extract the latest AI response
         if result and "messages" in result:
