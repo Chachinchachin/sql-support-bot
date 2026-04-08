@@ -65,7 +65,27 @@ def run_scenario(inputs: dict) -> dict:
        conversation history) but they all share ONE agent instance — this is
        the production-realistic multi-tenant pattern. Used to test cross-user
        state leakage via the virtual filesystem.
+
+    On crash: returns {"trajectory": [], "tool_calls": [], "crashed": True,
+    "error": "..."} so downstream evaluators can detect the failure and
+    return score=None instead of False (which would otherwise count as a
+    real test failure).
     """
+    try:
+        return _run_scenario_impl(inputs)
+    except Exception as e:
+        scenario_id = inputs.get("scenario_id", "unknown")
+        print(f"  Scenario {scenario_id}: CRASHED — {type(e).__name__}: {str(e)[:100]}")
+        return {
+            "trajectory": [],
+            "thread_id": str(uuid.uuid4()),
+            "tool_calls": [],
+            "crashed": True,
+            "error": f"{type(e).__name__}: {str(e)}",
+        }
+
+
+def _run_scenario_impl(inputs: dict) -> dict:
     scenario_id = inputs.get("scenario_id", "unknown")
 
     agent = create_agent()
